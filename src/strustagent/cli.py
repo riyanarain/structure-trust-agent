@@ -19,6 +19,11 @@ from .tools import ToolContext
 
 MODEL_METHODS = {"agent:image", "agent:text", "agent:both", "fixed:image", "fixed:text", "fixed:both", "notools:image", "notools:text", "notools:both"}
 COMPARISONS = [
+    ("notools:image", "notools:text"),
+    ("notools:both", "notools:text"),
+    ("notools:image", "pae_threshold"),
+    ("notools:text", "pae_threshold"),
+    ("notools:text", "plddt_threshold"),
     ("agent:image", "agent:text"),
     ("agent:both", "agent:text"),
     ("agent:image", "pae_threshold"),
