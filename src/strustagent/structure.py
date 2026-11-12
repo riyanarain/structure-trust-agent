@@ -26,11 +26,13 @@ def _one_letter(resname: str) -> str | None:
     return _THREE_TO_ONE.get(resname.upper()) or _THREE_TO_ONE.get(resname.capitalize())
 
 
-def read_chain(path: str | Path, chain_id: str | None = None, model_index: int = 0) -> Chain:
+def _parse(path) -> object:
     path = str(path)
     parser = MMCIFParser(QUIET=True) if path.endswith((".cif", ".mmcif")) else PDBParser(QUIET=True)
-    structure = parser.get_structure("s", path)
-    model = structure[model_index]
+    return parser.get_structure("s", path)
+
+
+def _chain_from_model(model, chain_id: str | None, label: str = "") -> Chain:
     if chain_id is not None and chain_id in [c.id for c in model]:
         chain = model[chain_id]
     else:
@@ -47,8 +49,13 @@ def read_chain(path: str | Path, chain_id: str | None = None, model_index: int =
         xyz.append(atom.coord)
         bf.append(atom.get_bfactor())
     if not seq:
-        raise ValueError(f"No C-alpha atoms read from {path} chain {chain_id}")
+        raise ValueError(f"No C-alpha atoms read from {label} chain {chain_id}")
     return Chain("".join(seq), np.asarray(xyz, dtype=float), np.asarray(bf, dtype=float))
+
+
+def read_chain(path: str | Path, chain_id: str | None = None, model_index: int = 0) -> Chain:
+    model = _parse(path)[model_index]
+    return _chain_from_model(model, chain_id, str(path))
 
 
 def _aligner() -> PairwiseAligner:
@@ -91,22 +98,27 @@ def project_to_reference(chain: Chain, ref: str) -> tuple[np.ndarray, np.ndarray
 
 
 def best_chain(path: str | Path, ref: str, preferred: str | None = None) -> tuple[Chain, str]:
-    """Pick the chain in a file that best matches the reference sequence (preferred chain first)."""
-    path = str(path)
-    parser = MMCIFParser(QUIET=True) if path.endswith((".cif", ".mmcif")) else PDBParser(QUIET=True)
-    model = parser.get_structure("s", path)[0]
+    """Pick the chain in a file that best matches the reference sequence (preferred chain first).
+
+    The file is parsed once. Large complexes can have dozens of chains, so re-parsing per chain is very slow.
+    """
+    model = _parse(path)[0]
     ids = [c.id for c in model]
     order = ([preferred] if preferred in ids else []) + [c for c in ids if c != preferred]
-    best, best_score = None, -1.0
+    best, best_score, best_id = None, -1.0, None
     for cid in order:
         try:
-            chain = read_chain(path, cid)
+            chain = _chain_from_model(model, cid, str(path))
         except ValueError:
+            continue
+        if len(chain.seq) < 20:  # peptides and ligands cannot be the target chain
             continue
         _, identity, coverage = align_to_reference(chain.seq, ref)
         score = identity * coverage
         if score > best_score + 1e-9:
             best, best_score, best_id = chain, score, cid
+        if cid == preferred and identity >= 0.9 and coverage >= 0.5:
+            break  # the chain chosen at fetch time is still good; skip the rest
     if best is None:
         raise ValueError(f"No usable chain in {path}")
     return best, best_id
