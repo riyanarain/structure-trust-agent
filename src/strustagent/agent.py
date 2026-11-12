@@ -29,8 +29,10 @@ TRUST_WORDS = {"high": 0.9, "medium": 0.5, "low": 0.1}
 TASK = """\
 You are judging how far a predicted protein structure (from AlphaFold) can be trusted, without access to the true structure.
 Two things are asked:
-1. segments: for residue ranges covering the protein, a trust score from 0 to 1, where 1 means the local structure is
-   expected to match the experimental structure closely and 0 means it is expected to be wrong.
+1. segments: for residue ranges covering the whole protein, a trust score from 0 to 1, where 1 means the local structure is
+   expected to match the experimental structure closely and 0 means it is expected to be wrong. Split the protein wherever
+   the evidence changes (domains, linkers, loops, termini) and use segments of at most about 50 residues. Do not give one
+   score for the whole protein; the scores should differ between regions that look more and less reliable.
 2. domain_pairs: for each listed domain pair, whether the relative placement of the two domains is reliable.
    A domain can be well folded and still be placed wrongly relative to another domain.
 Final answer format (one JSON object, no other text):
