@@ -123,3 +123,10 @@ def test_allowed_methods_cover_rcsb_spellings():
     from strustagent.data import ALLOWED_METHODS
 
     assert {"X-RAY", "EM"} <= ALLOWED_METHODS and "NMR" not in ALLOWED_METHODS
+
+
+def test_baseline_results_are_json_serializable():
+    cfg = Config()
+    p = make_synthetic(seed=0, misplace_deg=60.0)
+    for name in BASELINES:
+        json.dumps(BASELINES[name](p, cfg).to_json())

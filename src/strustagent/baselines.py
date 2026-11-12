@@ -26,7 +26,7 @@ def plddt_threshold(p, cfg: Config) -> RunResult:
     res.residue_trust = (p.plddt / 100.0).tolist()
     for a, b in p.pairs:
         _, pl = _pair_stats(p, a, b)
-        res.pair_judgments[f"{a}-{b}"] = {"reliable": pl >= cfg.plddt_threshold, "confidence": pl / 100.0}
+        res.pair_judgments[f"{a}-{b}"] = {"reliable": bool(pl >= cfg.plddt_threshold), "confidence": float(pl / 100.0)}
     return res
 
 
@@ -35,7 +35,7 @@ def pae_threshold(p, cfg: Config) -> RunResult:
     res.residue_trust = (p.plddt / 100.0).tolist()
     for a, b in p.pairs:
         pae, _ = _pair_stats(p, a, b)
-        res.pair_judgments[f"{a}-{b}"] = {"reliable": pae < cfg.pae_pair_threshold, "confidence": float(1.0 / (1.0 + pae))}
+        res.pair_judgments[f"{a}-{b}"] = {"reliable": bool(pae < cfg.pae_pair_threshold), "confidence": float(1.0 / (1.0 + pae))}
     return res
 
 

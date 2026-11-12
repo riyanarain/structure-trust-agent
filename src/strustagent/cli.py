@@ -110,7 +110,8 @@ def cmd_run(a, cfg):
                 mode, cond = method.split(":")
                 ctx = ToolContext(p, cfg, release_dates, ctx_cache)
                 res = run_one(client, p, mode, cond, cfg, ctx, images_cache)
-            f.write_text(json.dumps(res.to_json()))
+            text = json.dumps(res.to_json())  # serialize first so a failure never leaves an empty file behind
+            f.write_text(text)
         print(f"{method}: done")
     if client is not None:
         print(f"model calls made: {client.calls}, cache hits: {client.hits}")
