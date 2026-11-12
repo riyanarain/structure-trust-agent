@@ -19,16 +19,27 @@ import numpy as np
 
 from .config import Config
 
-TOOL_DOCS = """\
+TOOL_DOC_TEXT = {
+    "foldseek_support": """\
 foldseek_support: search experimentally solved structures for matches to regions of the predicted structure.
   args: {"regions": [[start, end], ...]}   (1-based inclusive residue ranges, at most 4 regions)
   returns, per region: top hits with TM-score, query coverage, and sequence identity. A high TM-score over most of a
   region means similar experimental structures exist for that region. It says nothing about how regions sit relative to each other.
+""",
+    "esm2_plausibility": """\
 esm2_plausibility: score how plausible each region's amino acid sequence is under the ESM-2 protein language model.
   args: {"regions": [[start, end], ...]}   (1-based inclusive, at most 4 regions; use [1, <length>] for the whole protein)
   returns, per region: mean log-probability of the true residues and the mean probability. Low values mean the sequence looks unusual,
   which is common in disordered or poorly conserved regions.
-"""
+""",
+}
+
+
+def tool_docs(names) -> str:
+    return "".join(TOOL_DOC_TEXT[n] for n in names)
+
+
+TOOL_DOCS = tool_docs(list(TOOL_DOC_TEXT))  # kept for backward compatibility
 
 
 def parse_regions(args: dict, length: int, limit: int = 4) -> list[tuple[int, int]]:
@@ -167,6 +178,7 @@ TOOLS = {"foldseek_support": foldseek_support, "esm2_plausibility": esm2_plausib
 
 
 def run_tool(name: str, ctx: ToolContext, args: dict) -> dict:
-    if name not in TOOLS:
-        raise KeyError(f"unknown tool {name!r}; available: {sorted(TOOLS)}")
+    enabled = [t for t in ctx.cfg.tools if t in TOOLS]
+    if name not in enabled:
+        raise KeyError(f"unknown tool {name!r}; available: {sorted(enabled)}")
     return TOOLS[name](ctx, args)

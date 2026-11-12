@@ -22,7 +22,7 @@ from .config import Config
 from .evidence import domain_header, text_evidence
 from .llm import LLMClient, Message
 from .render import render_all
-from .tools import TOOL_DOCS, ToolContext, run_tool
+from .tools import ToolContext, run_tool, tool_docs
 
 TRUST_WORDS = {"high": 0.9, "medium": 0.5, "low": 0.1}
 
@@ -50,8 +50,9 @@ Available tools:
 """
 
 
-def system_prompt(use_tools: bool) -> str:
-    return TASK + ("\n" + TOOL_PROTOCOL + TOOL_DOCS if use_tools else "\nNo tools are available. Answer directly.\n")
+def system_prompt(use_tools: bool, tools=None) -> str:
+    docs = tool_docs(tools if tools is not None else ["foldseek_support", "esm2_plausibility"])
+    return TASK + ("\n" + TOOL_PROTOCOL + docs if use_tools else "\nNo tools are available. Answer directly.\n")
 
 
 @dataclass
@@ -156,7 +157,7 @@ def run_one(
 ) -> RunResult:
     res = RunResult(p.acc, mode, condition)
     use_tools = mode == "agent"
-    system = system_prompt(use_tools)
+    system = system_prompt(use_tools, cfg.tools)
     messages = [build_user_message(p, condition, cfg, images_cache)]
     _log(res, messages[0])
 
@@ -166,7 +167,7 @@ def run_one(
         outs = {}
         whole = [[1, p.length]]
         regions = whole + [[a, b] for d in p.domains for a, b in d.ranges[:1]][:3]
-        for name in ("foldseek_support", "esm2_plausibility"):
+        for name in cfg.tools:
             try:
                 outs[name] = run_tool(name, tool_ctx, {"regions": regions})
                 res.tool_calls.append({"tool": name, "args": {"regions": regions}, "ok": True, "forced": True})

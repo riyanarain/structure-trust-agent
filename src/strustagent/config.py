@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
@@ -44,6 +44,7 @@ class Config:
     unscored_residue_default: float = 0.5  # trust assigned to residues the agent did not mention
 
     # ---- tools ----
+    tools: list = field(default_factory=lambda: ["foldseek_support", "esm2_plausibility"])  # tools the agent may use; drop foldseek_support if it is not installed
     foldseek_bin: str = "foldseek"
     foldseek_db: str = ""  # path to a Foldseek PDB database, e.g. made with `foldseek databases PDB pdb tmp`
     foldseek_top_k: int = 5

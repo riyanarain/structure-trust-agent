@@ -130,3 +130,18 @@ def test_baseline_results_are_json_serializable():
     p = make_synthetic(seed=0, misplace_deg=60.0)
     for name in BASELINES:
         json.dumps(BASELINES[name](p, cfg).to_json())
+
+
+def test_disabled_tool_is_hidden_from_prompt_and_rejected():
+    from strustagent.agent import system_prompt
+    from strustagent.tools import run_tool
+
+    cfg = Config(tools=["esm2_plausibility"])
+    prompt = system_prompt(True, cfg.tools)
+    assert "esm2_plausibility:" in prompt and "foldseek_support:" not in prompt
+    p = make_synthetic(seed=0)
+    try:
+        run_tool("foldseek_support", ToolContext(p, cfg), {"regions": [[1, 10]]})
+    except KeyError:
+        return
+    raise AssertionError("disabled tool was run")
