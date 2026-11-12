@@ -117,3 +117,9 @@ def test_cache_makes_second_call_free(tmp_path):
     m = [Message("user", "hi")]
     assert c.generate("s", m) == "first" and c.generate("s", m) == "first"
     assert c.calls == 1 and c.hits == 1
+
+
+def test_allowed_methods_cover_rcsb_spellings():
+    from strustagent.data import ALLOWED_METHODS
+
+    assert {"X-RAY", "EM"} <= ALLOWED_METHODS and "NMR" not in ALLOWED_METHODS

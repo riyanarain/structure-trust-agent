@@ -23,6 +23,9 @@ RCSB_GQL = "https://data.rcsb.org/graphql"
 AFDB = "https://alphafold.ebi.ac.uk/api/prediction/{acc}"
 RCSB_FILE = "https://files.rcsb.org/download/{pdb}.cif"
 
+# RCSB's summary field uses "X-ray" and "EM"; the older mmCIF spellings are kept in case the API changes.
+ALLOWED_METHODS = {"X-RAY", "EM", "X-RAY DIFFRACTION", "ELECTRON MICROSCOPY"}
+
 _session = requests.Session()
 
 
@@ -64,7 +67,7 @@ def select_candidates(cfg: Config, out_path: str | Path, page_size: int = 500, l
             e = info.get(pid.upper())
             if not e or e["release_date"] <= cfg.pdb_release_after:
                 continue
-            if e["method"] not in ("X-RAY DIFFRACTION", "ELECTRON MICROSCOPY"):
+            if str(e["method"]).strip().upper() not in ALLOWED_METHODS:
                 continue
             if e["resolution"] is None or e["resolution"] > cfg.max_resolution:
                 continue
