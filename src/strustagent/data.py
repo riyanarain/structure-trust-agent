@@ -128,9 +128,11 @@ def fetch_protein(entry: dict, data_dir: str | Path, cfg: Config, log=print) -> 
         path.write_bytes(_get(RCSB_FILE.format(pdb=cand["pdb_id"])).content)
         try:
             chain, cid = best_chain(path, seq)
-        except ValueError:
+        except ValueError as exc:
+            log(f"{acc} {cand['pdb_id']}: no usable chain ({exc})")
             continue
         _, _, ident, cov = project_to_reference(chain, seq)
+        log(f"{acc} {cand['pdb_id']}: best chain {cid}, identity {ident:.2f}, coverage of UniProt sequence {cov:.2f} (need >= {cfg.min_identity} and >= {cfg.min_coverage})")
         if ident >= cfg.min_identity and cov >= cfg.min_coverage:
             meta = {
                 "uniprot": acc,
@@ -151,9 +153,10 @@ def fetch_protein(entry: dict, data_dir: str | Path, cfg: Config, log=print) -> 
 def fetch_all(manifest: str | Path, data_dir: str | Path, cfg: Config, limit: int | None = None, log=print) -> int:
     entries = json.loads(Path(manifest).read_text())
     ok = 0
-    for e in entries:
+    for n, e in enumerate(entries, start=1):
         if ok >= (limit or cfg.max_proteins):
             break
+        log(f"[{n}/{len(entries)}] {e['uniprot']} ({ok} ready)")
         try:
             ok += int(fetch_protein(e, data_dir, cfg, log))
         except Exception as exc:  # noqa: BLE001
