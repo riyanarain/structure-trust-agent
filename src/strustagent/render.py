@@ -25,7 +25,7 @@ DOMAIN_COLORS = ["#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#ff7f0e", "#17becf
 
 def _png(fig) -> bytes:
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=110, bbox_inches="tight")
+    fig.savefig(buf, format="png", dpi=130, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     return buf.getvalue()
 
@@ -57,15 +57,18 @@ def _orient(xyz: np.ndarray) -> np.ndarray:
     return out
 
 
-def _trace(ax, xyz, colors, lw=2.2):
+def _trace(ax, xyz, colors, lw=3.0):
     pts = np.stack([xyz[:-1], xyz[1:]], axis=1)
     keep = ~np.isnan(pts).any(axis=(1, 2))
     lc = Line3DCollection(pts[keep], colors=[colors[i] for i in np.where(keep)[0]], linewidths=lw)
     ax.add_collection3d(lc)
-    lim = np.nanmax(np.abs(xyz))
-    ax.set_xlim(-lim, lim)
-    ax.set_ylim(-lim, lim)
-    ax.set_zlim(-lim, lim)
+    # a cube centered on the bounding box, just large enough for the longest extent
+    lo, hi = np.nanmin(xyz, axis=0), np.nanmax(xyz, axis=0)
+    mid, half = (lo + hi) / 2, float(np.max(hi - lo)) / 2 * 1.02
+    ax.set_xlim(mid[0] - half, mid[0] + half)
+    ax.set_ylim(mid[1] - half, mid[1] + half)
+    ax.set_zlim(mid[2] - half, mid[2] + half)
+    ax.set_box_aspect((1, 1, 1), zoom=1.45)
     ax.set_axis_off()
     ax.view_init(elev=20, azim=35)
 
@@ -80,7 +83,8 @@ def render_structure(coords: np.ndarray, plddt: np.ndarray, domains: list[Domain
         for r in d.residues:
             dom_of[int(r)] = DOMAIN_COLORS[k % len(DOMAIN_COLORS)]
     by_domain = [dom_of.get(i, "#BBBBBB") for i in range(len(plddt))]
-    fig = plt.figure(figsize=(9.0, 4.4))
+    fig = plt.figure(figsize=(9.0, 3.7))
+    fig.subplots_adjust(left=0.0, right=1.0, wspace=-0.05, top=0.84, bottom=0.04)
     ax1 = fig.add_subplot(1, 2, 1, projection="3d")
     ax2 = fig.add_subplot(1, 2, 2, projection="3d")
     _trace(ax1, xyz, by_plddt)
