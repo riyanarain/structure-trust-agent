@@ -183,6 +183,18 @@ def cmd_demo(a, cfg):
     print("true domain pair placement:", p.true_pairs)
 
 
+def cmd_figure(a, cfg):
+    from .render import render_all
+
+    p = load_protein(Path(a.data_dir) / a.acc, cfg, with_truth=True)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    imgs = render_all(p)
+    (out / "example_structure.png").write_bytes(imgs[0])
+    (out / "example_pae.png").write_bytes(imgs[1])
+    print(f"wrote {out}/example_structure.png and example_pae.png for {a.acc}; domains: {[(d.id, d.ranges) for d in p.domains]}; true pairs: {p.true_pairs}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="strustagent")
     ap.add_argument("--config", default=None)
@@ -220,6 +232,12 @@ def main(argv=None):
     s.add_argument("--data-dir", default="data/proteins")
     s.add_argument("--runs", default="runs/pilot")
     s.set_defaults(fn=cmd_evaluate)
+
+    s = sub.add_parser("figure", help="write the structure and PAE images for one fetched protein")
+    s.add_argument("acc")
+    s.add_argument("--data-dir", default="data/proteins")
+    s.add_argument("--out", default="figs")
+    s.set_defaults(fn=cmd_figure)
 
     s = sub.add_parser("demo")
     s.add_argument("--out", default="demo_out")
